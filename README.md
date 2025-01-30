@@ -104,7 +104,7 @@ Once started, visit:
 ## 🔥 **Screenshots of the Project**
 
 ### **Text-to-Image Search Example:**
-![Text Search](https://github.com/Kartik-A-1820/multimodal_ai.git/screenshots/1.png)
+![Text Search](screenshots/1.png)
 
 ### **Image-to-Image Search Example:**
 ![Image Search](screenshots/2.png)
