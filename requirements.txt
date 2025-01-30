@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+faiss-cpu
+open-clip-torch
+torch
+numpy
+p PILLOW
+streamlit
+requests
+python-multipart
