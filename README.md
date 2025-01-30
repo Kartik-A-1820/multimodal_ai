@@ -104,10 +104,10 @@ Once started, visit:
 ## 🔥 **Screenshots of the Project**
 
 ### **Text-to-Image Search Example:**
-![Text Search](https://raw.githubusercontent.com/Kartik-A-1820/multimodal-ai-search/main/screenshots/Screenshot_2025-01-30_161130.png)
+![Text Search](https://github.com/Kartik-A-1820/multimodal_ai.git/screenshots/Screenshot 2025-01-30 161130.png)
 
 ### **Image-to-Image Search Example:**
-![Image Search](https://raw.githubusercontent.com/Kartik-A-1820/multimodal-ai-search/main/screenshots/Screenshot_2025-01-30_161351.png)
+![Image Search](screenshots/Screenshot 2025-01-30 161351.png)
 
 ---
 
