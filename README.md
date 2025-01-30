@@ -101,6 +101,15 @@ Once started, visit:
 
 ---
 
+## 🔥 **Performance Benchmarking**
+- Replaced **brute-force similarity search** with **FAISS indexing**, significantly improving retrieval speed.
+- **Measured Performance:**
+  - **Brute-Force Search:** Retrieval time = `0.001992 seconds` seconds
+  - **FAISS Optimized Search:** Retrieval time = `0.000982` seconds
+  - **Speed Improvement:** ✅ **50.70% faster retrieval time.**
+
+---
+
 ## 🔥 **Screenshots of the Project**
 
 ### **Text-to-Image Search Example:**
