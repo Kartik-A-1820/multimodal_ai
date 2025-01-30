@@ -1,4 +1,4 @@
-# 📌 Multimodal AI - Image & Text Search Engine (CLIP + FAISS)
+# 📌 Multimodal AI - Image Search Engine (CLIP + FAISS)
 
 ## 🏆 **Project Overview**
 This project is a **Multimodal AI Search Engine** that enables users to **search for images using text queries and vice versa**. It is powered by **OpenAI's CLIP model** for embedding extraction and **FAISS** for fast similarity search.
