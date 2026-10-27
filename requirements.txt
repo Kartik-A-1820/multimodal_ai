@@ -1,10 +1,10 @@
-fastapi
-uvicorn
-faiss-cpu
-open-clip-torch
-torch
-numpy
-p PILLOW
-streamlit
-requests
-python-multipart
+fastapi>=0.115,<1
+uvicorn>=0.30,<1
+faiss-cpu>=1.8,<2
+open-clip-torch>=2.26,<4
+torch>=2.5,<3
+numpy>=1.25,<3
+Pillow>=10.4,<13
+streamlit>=1.40,<2
+requests>=2.32,<3
+python-multipart>=0.0.18,<1

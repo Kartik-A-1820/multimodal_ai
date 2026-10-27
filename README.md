@@ -1,169 +1,92 @@
-# 📌 Multimodal AI - Image Search Engine (CLIP + FAISS)
+# Multimodal AI — CLIP image search
 
-## 🏆 **Project Overview**
-This project is a **Multimodal AI Search Engine** that enables users to **search for images using text queries and vice versa**. It is powered by **OpenAI's CLIP model** for embedding extraction and **FAISS** for fast similarity search.
+Portable text-to-image and image-to-image retrieval with CLIP, FAISS cosine
+similarity, FastAPI, and Streamlit. No paid inference API is required.
 
----
+## Setup
 
-## 📂 **Project Structure**
+Python 3.10+:
 
-### 🔹 **Input:**
-- **User uploads an image or enters a text query**.
-- The system encodes both text and image into a **shared feature space**.
-
-### 🔹 **Processing:**
-1. **Feature Extraction:** CLIP model encodes images & text into embeddings.
-2. **Indexing & Search:** FAISS indexes embeddings for fast similarity search.
-3. **Ranking & Retrieval:** Top-K most relevant images or text results are retrieved.
-
-### 🔹 **Output:**
-- **Returns the most relevant images for a given text query** or vice versa.
-
----
-
-## 📌 **Dataset Information**
-This project uses a **merged dataset of Flickr8k & Flickr30k** for improved performance and diversity.
-
-### 🔹 **Dataset Setup Instructions:**
-1. **Download Flickr8k and Flickr30k datasets** manually from [Kaggle](https://www.kaggle.com/datasets).
-2. **Extract all images** into the following directory:
-   ```
-   multimodal_ai/datasets/images
-   ```
-3. **Merge the captions from both datasets** and save as:
-   ```
-   multimodal_ai/datasets/final_captions.csv
-   ```
-4. **Ensure the final CSV file contains one caption per image (merged from 5 captions).**
-
-🔹 **Note:** Images are not included in this repository due to large file size.
-
----
-
-## 📌 **Tech Stack & Dependencies**
-
-### **Core AI Components:**
-✅ **CLIP (Contrastive Language-Image Pretraining)** – OpenAI's model for multimodal embeddings.  
-✅ **FAISS (Facebook AI Similarity Search)** – Efficient nearest neighbor search.  
-✅ **Torch & Hugging Face Transformers** – For working with pretrained models.  
-✅ **OpenCV & PIL** – For image processing.  
-
-### **Backend & Deployment:**
-✅ **FastAPI** – High-performance API framework.  
-✅ **Uvicorn** – ASGI server for running FastAPI.  
-✅ **Streamlit** – Simple UI for testing search queries.  
-✅ **SQLite / PostgreSQL** – For metadata storage.  
-✅ **Docker (Optional)** – For containerization.  
-✅ **Jupyter Notebook (Training) & VSCode (Modular Coding)** – As per user preference.  
-
----
-
-## 🛠️ **Installation & Setup**
-
-### **1️⃣ Clone the Repository**
 ```bash
-git clone https://github.com/Kartik-A-1820/multimodal-ai-search.git
-cd multimodal-ai-search
-```
-
-### **2️⃣ Install Dependencies**
-```bash
+git clone https://github.com/Kartik-A-1820/multimodal_ai.git
+cd multimodal_ai
+python -m venv .venv
+# Windows: .venv\Scripts\activate
+# Linux/macOS: source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### **3️⃣ Prepare Dataset**
-Ensure images are placed in:
-```
-multimodal_ai/datasets/images/
-```
-And the merged captions file is stored as:
-```
-multimodal_ai/datasets/final_captions.csv
-```
+Place legally obtained Flickr images under `datasets/images` (lowercase). The
+caption CSV needs an `image` column with filenames relative to that directory;
+`datasets/final_captions.csv` is the default. Images are not bundled. The first
+CLIP load downloads weights.
 
----
-
-## 🚀 **Running the Project**
-
-### **1️⃣ Start the FastAPI Backend**
 ```bash
-uvicorn app:app --host 0.0.0.0 --port 8000 --reload
-```
-
-### **2️⃣ Run the Streamlit UI**
-```bash
+python build_index.py
+uvicorn app:app --host 127.0.0.1 --port 8000
+# Another activated terminal:
 streamlit run ui.py
 ```
 
-Once started, visit:
-- **FastAPI Docs:** [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
-- **Streamlit UI:** [http://127.0.0.1:8501](http://127.0.0.1:8501)
+API docs: http://127.0.0.1:8000/docs. UI: http://127.0.0.1:8501.
+Stop the API while rebuilding the index, then restart it.
 
----
+## Configuration
 
-## 🔥 **Performance Benchmarking**
-- Replaced **brute-force similarity search** with **FAISS indexing**, significantly improving retrieval speed.
-- **Measured Performance:**
-  - **Brute-Force Search:** Retrieval time = `0.001992 seconds` seconds
-  - **FAISS Optimized Search:** Retrieval time = `0.000982` seconds
-  - **Speed Improvement:** ✅ **50.70% faster retrieval time.**
+Set environment variables before launching. Relative paths resolve from the
+repository, independently of the current working directory.
 
----
+| Variable | Default |
+| --- | --- |
+| `MM_IMAGE_DIR` | `datasets/images` |
+| `MM_CSV_PATH` | `datasets/final_captions.csv` |
+| `MM_INDEX_PATH` | `models/search.index` |
+| `MM_METADATA_PATH` | `models/search.json` |
+| `MM_CLIP_MODEL` | `ViT-B-32` |
+| `MM_CLIP_PRETRAINED` | `openai` |
+| `MM_API_URL` (UI only) | `http://127.0.0.1:8000` |
 
-## 🔥 **Screenshots of the Project**
+The API and indexer must use identical CLIP settings. Result images are served
+by the backend, so the UI needs no local dataset copy.
 
-### **Text-to-Image Search Example:**
-![Text Search](screenshots/1.png)
+## Migration and correctness
 
-### **Image-to-Image Search Example:**
-![Image Search](screenshots/2.png)
+**Rebuild old indexes.** The supported indexer stores normalized image embeddings
+and an exact ordered filename mapping. Missing images are skipped, duplicate CSV
+rows are collapsed, and a hash binds metadata to its index. Query and index
+vectors use the same normalization and model. Inner product then equals cosine
+similarity. The UI/API no longer depend on a Windows drive letter.
 
----
+The original `feature_extraction.ipynb` and `retrieval_speed_test.ipynb` remain as
+historical experiments with machine-specific paths; use `build_index.py` for new
+indexes. Their single-query benchmark used mismatched similarity metrics and does
+not establish a reproducible speedup. No new semantic-quality or performance
+result is claimed by this maintenance update.
 
-## 🔥 **API Endpoints**
+## API
 
-### **1️⃣ Text-to-Image Search**
+- `GET /health`: readiness and image count.
+- `GET /search_by_text?query=dog&top_k=5`.
+- `POST /search_by_image?top_k=5`: multipart `file`.
+- `GET /images/{name}`: indexed images only.
+
+Top-k is restricted to 1–100 and capped to index size. File contents are capped
+at 10 MiB and images at 25 million pixels. Use a reverse-proxy body limit before
+public exposure; multipart parsing happens before the endpoint's file-size check.
+This is a local tool without authentication. Model loading occurs at API startup,
+never at import.
+
+## Verification
+
 ```bash
-GET /search_by_text?query="dog running on the field"
-```
-✅ **Response:**
-```json
-{
-    "query": "dog running on the field",
-    "results": ["image1.jpg", "image2.jpg", "image3.jpg"]
-}
+pip install -r requirements-test.txt
+python -m pytest -q
 ```
 
-### **2️⃣ Image-to-Image Search**
-```bash
-POST /search_by_image
-```
-✅ **Example cURL Request:**
-```bash
-curl -X 'POST' \
-  'http://127.0.0.1:8000/search_by_image' \
-  -H 'accept: application/json' \
-  -H 'Content-Type: multipart/form-data' \
-  -F 'file=@your_image.jpg'
-```
-✅ **Response:** List of matching images.
+Regression tests exercise real FAISS with deterministic embeddings: filename
+alignment after missing/duplicate images, cosine ranking, invalid top-k/blank
+queries, malformed uploads, and valid PNG requests. Tests require no model
+weights. Real CLIP semantic quality remains a separate labeled-data experiment.
 
----
-
-## 🎯 **Expected Outcome**
-✅ **Fully functional AI-powered search engine**  
-✅ **Fast multimodal retrieval using FAISS**  
-✅ **Live API & UI hosted online**
-
----
-
-## ⭐ **Support & Feedback**
-If you find this project useful, give it a ⭐ on GitHub!
-
----
-
-### 🔗 **Connect with Me:**
-- GitHub: [Kartik-A-1820](https://github.com/Kartik-A-1820)
-- LinkedIn: [Kartik Anagawadi](https://www.linkedin.com/in/kartik-anagawadi-4b33a81b6/)
-
-🚀 **Happy Searching!** 🔍
+References: [FAISS metrics](https://github.com/facebookresearch/faiss/wiki/MetricType-and-distances),
+[FastAPI lifespan](https://fastapi.tiangolo.com/advanced/events/).

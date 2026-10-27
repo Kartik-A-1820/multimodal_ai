@@ -1,64 +1,52 @@
-import faiss
-import open_clip
-import torch
-import numpy as np
-from fastapi import FastAPI, UploadFile, File, Form
-from PIL import Image
+"""API import never reads indexes or downloads model weights."""
+from contextlib import asynccontextmanager
 import io
-import pandas as pd
-import os
+from fastapi import FastAPI, File, HTTPException, Query, Request, UploadFile
+from fastapi.responses import FileResponse
+from PIL import Image, UnidentifiedImageError
+import settings
+from search_runtime import SearchRuntime
 
-# Load FAISS Index
-faiss_index_path = "G:/multimodal_ai/models/faiss_index.idx"
-index = faiss.read_index(faiss_index_path)
+def create_app(runtime_factory=SearchRuntime.load):
+    @asynccontextmanager
+    async def lifespan(app):
+        app.state.runtime = runtime_factory()
+        yield
+        app.state.runtime = None
+    app = FastAPI(title='Multimodal image search', lifespan=lifespan)
+    @app.get('/health')
+    def health(request: Request):
+        return {'status': 'ready', 'images': len(request.app.state.runtime.images)}
+    @app.get('/search_by_text')
+    def by_text(request: Request, query: str = Query(min_length=1, max_length=2048), top_k: int = Query(default=5, ge=1, le=100)):
+        if not query.strip():
+            raise HTTPException(422, 'Query cannot be blank')
+        runtime = request.app.state.runtime
+        return {'query': query, 'results': runtime.search(runtime.encoder.text(query), top_k)}
+    @app.post('/search_by_image')
+    def by_image(request: Request, file: UploadFile = File(...), top_k: int = Query(default=5, ge=1, le=100)):
+        data = file.file.read(10 * 1024 * 1024 + 1)
+        if len(data) > 10 * 1024 * 1024:
+            raise HTTPException(413, 'Image exceeds 10 MiB')
+        try:
+            with Image.open(io.BytesIO(data)) as image:
+                if image.width * image.height > 25_000_000:
+                    raise HTTPException(413, 'Image exceeds 25 million pixels')
+                features = request.app.state.runtime.encoder.image(image.convert('RGB'))
+        except (UnidentifiedImageError, OSError, Image.DecompressionBombError) as exc:
+            raise HTTPException(400, 'Invalid image') from exc
+        return {'results': request.app.state.runtime.search(features, top_k)}
+    @app.get('/images/{name:path}')
+    def image_file(name: str, request: Request):
+        if name not in request.app.state.runtime.images:
+            raise HTTPException(404, 'Image not indexed')
+        try:
+            path = settings.image_path(name)
+        except ValueError as exc:
+            raise HTTPException(404, 'Image unavailable') from exc
+        if not path.is_file():
+            raise HTTPException(404, 'Image unavailable')
+        return FileResponse(path)
+    return app
 
-# Load CLIP Model
-model, preprocess, _ = open_clip.create_model_and_transforms("ViT-B-32", pretrained="openai")
-tokenizer = open_clip.get_tokenizer("ViT-B-32")
-
-# Load dataset metadata for retrieving filenames
-csv_path = "G:/multimodal_ai/datasets/final_captions.csv"
-df = pd.read_csv(csv_path)
-image_folder = "G:/multimodal_ai/datasets/Images/"
-
-# Initialize FastAPI
-app = FastAPI()
-
-# Function to extract text embeddings
-def extract_text_features(text):
-    tokens = tokenizer([text])
-    with torch.no_grad():
-        features = model.encode_text(tokens)
-    return features.cpu().numpy()
-
-# Function to extract image embeddings
-def extract_image_features(image: Image.Image):
-    image = preprocess(image).unsqueeze(0)
-    with torch.no_grad():
-        features = model.encode_image(image)
-    return features.cpu().numpy()
-
-# Text-to-Image Search Endpoint
-@app.get("/search_by_text")
-def search_by_text(query: str, top_k: int = 5):
-    query_embedding = extract_text_features(query)
-    query_embedding = np.array(query_embedding, dtype=np.float32).reshape(1, -1)
-    
-    # Search in FAISS
-    distances, indices = index.search(query_embedding, top_k)
-    results = [df.iloc[i]['image'] for i in indices[0]]
-    
-    return {"query": query, "results": results}
-
-# Image-to-Image Search Endpoint
-@app.post("/search_by_image")
-def search_by_image(file: UploadFile = File(...), top_k: int = 5):
-    image = Image.open(io.BytesIO(file.file.read())).convert("RGB")
-    image_embedding = extract_image_features(image)
-    image_embedding = np.array(image_embedding, dtype=np.float32).reshape(1, -1)
-    
-    # Search in FAISS
-    distances, indices = index.search(image_embedding, top_k)
-    results = [df.iloc[i]['image'] for i in indices[0]]
-    
-    return {"results": results}
+app = create_app()

@@ -1,4 +1,8 @@
-"datasets/images/" 
+datasets/images/
+models/
+.venv/
+__pycache__/
 *.pyc
-".ipynb_checkpoints/"
-"models/"
+.pytest_cache/
+.ipynb_checkpoints/
+.env
