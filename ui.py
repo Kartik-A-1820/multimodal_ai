@@ -1,41 +1,26 @@
-import streamlit as st
+import os
+from urllib.parse import quote
 import requests
-from PIL import Image
-import io
-
-# FastAPI Endpoints
-TEXT_SEARCH_URL = "http://127.0.0.1:8000/search_by_text"
-IMAGE_SEARCH_URL = "http://127.0.0.1:8000/search_by_image"
-
-# Streamlit UI Setup
-st.title("🔍 Multimodal AI Image Search Engine")
-st.sidebar.title("Search Options")
-search_type = st.sidebar.radio("Choose Search Type:", ["Text Search", "Image Search"])
-
-# Text-to-Image Search
-if search_type == "Text Search":
-    query = st.text_input("Enter a text query:")
-    if st.button("Search"):
-        if query:
-            response = requests.get(TEXT_SEARCH_URL, params={"query": query})
-            if response.status_code == 200:
-                results = response.json()["results"]
-                st.subheader("Results:")
-                for img in results:
-                    st.image(f"G:/multimodal_ai/datasets/Images/{img}", caption=img, width=300)
-            else:
-                st.error("Failed to fetch results. Check API.")
-
-# Image-to-Image Search
-elif search_type == "Image Search":
-    uploaded_file = st.file_uploader("Upload an image:", type=["jpg", "png", "jpeg"])
-    if uploaded_file and st.button("Search"):
-        files = {"file": (uploaded_file.name, uploaded_file, uploaded_file.type)}
-        response = requests.post(IMAGE_SEARCH_URL, files=files)
-        if response.status_code == 200:
-            results = response.json()["results"]
-            st.subheader("Results:")
-            for img in results:
-                st.image(f"G:/multimodal_ai/datasets/Images/{img}", caption=img, width=300)
+import streamlit as st
+API = os.environ.get('MM_API_URL', 'http://127.0.0.1:8000').rstrip('/')
+st.title('Multimodal image search')
+mode = st.sidebar.radio('Search by', ['Text', 'Image'])
+query = st.text_input('Describe an image') if mode == 'Text' else None
+upload = st.file_uploader('Choose an image', type=['jpg', 'jpeg', 'png']) if mode == 'Image' else None
+if st.button('Search'):
+    try:
+        if mode == 'Text':
+            if not query or not query.strip():
+                st.warning('Enter a description.')
+                st.stop()
+            response = requests.get(f'{API}/search_by_text', params={'query': query}, timeout=60)
         else:
-            st.error("Failed to fetch results. Check API.")
+            if upload is None:
+                st.warning('Choose an image.')
+                st.stop()
+            response = requests.post(f'{API}/search_by_image', files={'file': (upload.name, upload.getvalue(), upload.type)}, timeout=60)
+        response.raise_for_status()
+        for name in response.json()['results']:
+            st.image(f'{API}/images/{quote(name, safe="")}', caption=name, width=300)
+    except requests.RequestException as exc:
+        st.error(f'Search failed; check backend and MM_API_URL. {exc}')
