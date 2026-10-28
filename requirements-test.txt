@@ -5,3 +5,4 @@ python-multipart>=0.0.18,<1
 faiss-cpu>=1.8,<2
 numpy>=1.25,<3
 Pillow>=10.4,<13
+requests>=2.32,<3
