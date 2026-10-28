@@ -46,3 +46,17 @@ def test_index_row_mapping(tmp_path, monkeypatch):
     assert faiss.read_index(str(settings.INDEX_PATH)).ntotal == 1
     with pytest.raises(ValueError):
         settings.image_path('../outside.png')
+
+def test_ui_fetches_private_backend_images_on_server(monkeypatch):
+    import ui_client
+    calls = []
+    class Response:
+        content = b'actual image bytes'
+        def raise_for_status(self):
+            calls.append('checked')
+    def get(url, timeout):
+        calls.append((url, timeout))
+        return Response()
+    monkeypatch.setattr(ui_client.requests, 'get', get)
+    assert ui_client.fetch_result_image('http://127.0.0.1:8000/', 'folder/my image.png') == b'actual image bytes'
+    assert calls == [('http://127.0.0.1:8000/images/folder%2Fmy%20image.png', 60), 'checked']

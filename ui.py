@@ -1,7 +1,7 @@
 import os
-from urllib.parse import quote
 import requests
 import streamlit as st
+from ui_client import fetch_result_image
 API = os.environ.get('MM_API_URL', 'http://127.0.0.1:8000').rstrip('/')
 st.title('Multimodal image search')
 mode = st.sidebar.radio('Search by', ['Text', 'Image'])
@@ -21,6 +21,6 @@ if st.button('Search'):
             response = requests.post(f'{API}/search_by_image', files={'file': (upload.name, upload.getvalue(), upload.type)}, timeout=60)
         response.raise_for_status()
         for name in response.json()['results']:
-            st.image(f'{API}/images/{quote(name, safe="")}', caption=name, width=300)
+            st.image(fetch_result_image(API, name), caption=name, width=300)
     except requests.RequestException as exc:
         st.error(f'Search failed; check backend and MM_API_URL. {exc}')
